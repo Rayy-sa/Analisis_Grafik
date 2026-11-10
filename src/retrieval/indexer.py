@@ -1,17 +1,26 @@
 import os
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 import psycopg2
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
-# Memuat kredensial DB dari .env
 load_dotenv()
 
-# Inisialisasi Model Embedding lokal
-print("Memuat model embedding")
-model = SentenceTransformer('BAAI/bge-m3')
-EMBEDDING_DIM = model.get_embedding_dimension()
+_model = None
+
+
+def get_embedding_model():
+    global _model
+    if _model is None:
+        from sentence_transformers import SentenceTransformer
+
+        print("Memuat model embedding")
+        _model = SentenceTransformer("BAAI/bge-m3")
+    return _model
+
+
+def get_embedding_dim():
+    return get_embedding_model().get_embedding_dimension()
 
 def connect_db():
     """Membuat koneksi ke PostgreSQL."""
@@ -35,7 +44,7 @@ def setup_database():
             source_file VARCHAR(255),
             chart_title VARCHAR(255),
             content TEXT,
-            embedding vector({EMBEDDING_DIM})
+            embedding vector({get_embedding_dim()})
         );
     """)
     conn.commit()
@@ -82,7 +91,7 @@ def index_to_vector_db(df, source_file, chart_title="Diagram"):
         
     # 2. Embedding (Mengubah teks menjadi vektor angka)
     print(f"Membuat vektor untuk {len(text_chunks)} baris dari {source_file}...")
-    embeddings = model.encode(text_chunks).tolist()
+    embeddings = get_embedding_model().encode(text_chunks).tolist()
     
     # 3. Simpan ke Database
     conn = connect_db()

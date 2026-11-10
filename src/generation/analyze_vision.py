@@ -8,8 +8,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# Mengimpor modul ekstraktor (DePlot) dan pembuat prompt kita
-from src.extraction.deplot_extractor import extract_chart_to_dataframe
+# Mengimpor pipeline terpadu (OpenCV + DePlot) dan pembuat prompt
+from src.extraction.extractor import process_chart_pipeline
 from src.generation.prompts import build_chart_analysis_prompt
 
 MODEL_NAME = "gemma4:12b"
@@ -21,7 +21,7 @@ def ask_gemma(prompt):
         "model": MODEL_NAME,
         "prompt": prompt,
         "stream": False,
-        "options": {"temperature": 0.3} # Sedikit kreativitas untuk merangkai kalimat naratif
+        "options": {"temperature": 0.3} # Suhu rendah untuk analisis yang presisi dan faktual
     }
     
     data = json.dumps(payload).encode('utf-8')
@@ -35,33 +35,32 @@ def ask_gemma(prompt):
         return f"Error Ollama: {e}"
 
 if __name__ == "__main__":
-    print("\n=== PENGUJIAN: ANALISIS POLA GRAFIK ===")
+    print("\n=== PENGUJIAN: PIPELINE ANALISIS GRAFIK===")
     
-    # 1. Tentukan gambar yang ingin diuji (Pastikan gambar ini ada di folder 'data')
-    nama_gambar = "gambar_uji2.png" 
+    # 1. Tentukan gambar yang ingin diuji
+    nama_gambar = "gambar_uji2.png" # Ganti sesuai nama file gambar Anda
     path_gambar = os.path.join(str(PROJECT_ROOT), "data", nama_gambar)
     
     if not os.path.exists(path_gambar):
         print(f"\n[Error] Gambar tidak ditemukan di: {path_gambar}")
-        print("Silakan taruh gambar grafik di folder 'data' dengan nama tersebut.")
         sys.exit()
         
-    # 2. Ekstrak Gambar menjadi Tabel (menggunakan DePlot)
-    df_extracted = extract_chart_to_dataframe(path_gambar)
+    # 2. Ekstrak Gambar menjadi Tabel (OpenCV -> RAM -> DePlot)
+    df_extracted = process_chart_pipeline(path_gambar)
     
     if df_extracted is not None:
-        # Ubah DataFrame menjadi teks Markdown yang rapi agar mudah dibaca oleh Gemma
+        # Ubah DataFrame menjadi teks Markdown
         data_teks = df_extracted.to_markdown(index=False)
         
-        # 3. Masukkan data tersebut ke dalam Prompts.py kita
+        # 3. Masukkan data bersih tersebut ke dalam Prompts
         print(f"\n[Proses] Menganalisis pola dan menyusun deskripsi menggunakan {MODEL_NAME}...")
         prompt_final = build_chart_analysis_prompt(data_teks)
         
         # 4. Minta Gemma mendeskripsikan polanya
         hasil_analisis = ask_gemma(prompt_final)
         
-        print("\n" + "="*50)
+        print("\n" + "="*60)
         print("📊 DESKRIPSI & ANALISIS GRAFIK")
-        print("="*50)
+        print("="*60)
         print(hasil_analisis)
-        print("="*50 + "\n")
+        print("="*60 + "\n")

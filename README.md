@@ -298,7 +298,28 @@ Pastikan Ollama berjalan di background:
 ollama serve
 ```
 
-### 7. Download Dataset (Opsional)
+### 7. Studio Frontend (UI)
+
+Studio adalah satu ruang kerja: unggah grafik, lihat ekstraksi, baca insight, lalu tanya jawab.
+
+**Backend API** (dari root project, virtualenv aktif):
+
+```bash
+pip install -r requirements.txt
+python -m uvicorn src.api.main:app --reload --port 8000
+```
+
+**Frontend** (terminal kedua):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Buka [http://localhost:5173](http://localhost:5173). Vite mem-proxy `/api` ke port 8000. Pastikan Ollama berjalan untuk insight dan tanya jawab; PostgreSQL + pgvector diperlukan agar indexing RAG berhasil. Jika database mati, analisis tabel/insight tetap bisa jalan — panel tanya jawab akan menandai basis vektor belum terhubung.
+
+### 8. Download Dataset (Opsional)
 
 ```bash
 python src/ingestion/downloader.py
