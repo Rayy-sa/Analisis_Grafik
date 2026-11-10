@@ -1,15 +1,21 @@
 import os
 import psycopg2
-from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
 import numpy as np
 from dotenv import load_dotenv
 
-# Muat variabel environment
 load_dotenv()
 
-# Inisialisasi model
-model = SentenceTransformer('BAAI/bge-m3')
+_model = None
+
+
+def get_embedding_model():
+    global _model
+    if _model is None:
+        from sentence_transformers import SentenceTransformer
+
+        _model = SentenceTransformer("BAAI/bge-m3")
+    return _model
 
 def connect_db():
     """Membuat koneksi ke PostgreSQL (Docker)."""
@@ -23,7 +29,7 @@ def connect_db():
 
 def dense_vector_search(query_text, top_n=5):
     """Mencari dokumen berdasarkan kemiripan makna (Vector)."""
-    query_embedding = model.encode(query_text).tolist()
+    query_embedding = get_embedding_model().encode(query_text).tolist()
     
     conn = connect_db()
     cur = conn.cursor()

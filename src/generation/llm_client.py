@@ -1,12 +1,7 @@
 import json
 import urllib.request
-import os
-
-from src.retrieval.search import execute_hybrid_search
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
-
-# FIX: Sesuaikan nama model persis dengan yang ada di Ollama lokal Anda
 MODEL_NAME = "gemma4:12b" 
 
 def create_strict_prompt(user_query, retrieved_contexts):
@@ -59,6 +54,31 @@ def generate_answer(prompt):
     except Exception as e:
         return f"Error menghubungi Ollama: {e}. Pastikan Ollama menyala dan model '{MODEL_NAME}' sudah terinstal."
 
+
+def generate_answer_stream(prompt):
+    """Stream token dari Ollama (NDJSON)."""
+    payload = {
+        "model": MODEL_NAME,
+        "prompt": prompt,
+        "stream": True,
+        "options": {"temperature": 0.0},
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        OLLAMA_URL, data=data, headers={"Content-Type": "application/json"}
+    )
+    with urllib.request.urlopen(req, timeout=300) as response:
+        for raw_line in response:
+            line = raw_line.decode("utf-8").strip()
+            if not line:
+                continue
+            chunk = json.loads(line)
+            piece = chunk.get("response", "")
+            if piece:
+                yield piece
+            if chunk.get("done"):
+                break
+
 # ==========================================
 # TEST PIPELINE (END-TO-END)
 # ==========================================
@@ -71,6 +91,8 @@ if __name__ == "__main__":
     
     # 2. Retrieval (Hybrid Search)
     print("\n[Proses] Menjalankan pencarian konteks (Vector + BM25)...")
+    from src.retrieval.search import execute_hybrid_search
+
     konteks = execute_hybrid_search(pertanyaan, top_n_final=2)
     
     if not konteks:
