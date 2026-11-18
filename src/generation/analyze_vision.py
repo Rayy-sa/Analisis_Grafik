@@ -21,7 +21,10 @@ def ask_gemma(prompt):
         "model": MODEL_NAME,
         "prompt": prompt,
         "stream": False,
-        "options": {"temperature": 0.3} # Suhu rendah untuk analisis yang presisi dan faktual
+        "options": {
+            "temperature": 0.3,
+            "num_ctx": 1024
+            } # Suhu rendah untuk analisis yang presisi dan faktual
     }
     
     data = json.dumps(payload).encode('utf-8')

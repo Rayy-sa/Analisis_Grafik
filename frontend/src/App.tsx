@@ -156,12 +156,12 @@ export default function App() {
           <p className="text-[11px] uppercase tracking-[0.22em] text-mute">Analisis Grafik</p>
           <p className="font-serif text-xl">Studio</p>
         </div>
-        <p className="hidden text-sm text-mute sm:block">{health?.model ?? "Gemma lokal"} · privat di mesin Anda</p>
+        <p className="hidden text-sm text-mute sm:block">{health?.model ?? "Gemma lokal"} · local</p>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 pb-20">
-        <StatusBanner health={health} />
+      <StatusBanner health={health} />
 
+      <main className="mx-auto max-w-6xl px-6 pb-20">
         <AnimatePresence mode="wait">
           {phase === "atelier" ? (
             <motion.section

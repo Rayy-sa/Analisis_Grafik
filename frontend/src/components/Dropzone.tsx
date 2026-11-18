@@ -71,9 +71,9 @@ export function Dropzone({ disabled, onFile }: Props) {
         <p className="font-serif text-2xl tracking-tight text-ink">Letakkan grafik di sini</p>
         <p className="mt-3 max-w-md text-sm leading-relaxed text-mute">
           Atau klik untuk memilih berkas. Kami akan membersihkan gambar, mengekstrak tabel, lalu
-          menulis insight dalam bahasa yang tenang.
+          menulis insight dalam bahasa yang mudah di mengerti.
         </p>
-        <p className="mt-6 text-xs uppercase tracking-[0.18em] text-mute/80">PNG · JPG · WEBP · 10 MB</p>
+        <p className="mt-6 text-xs uppercase tracking-[0.18em] text-mute/80">PNG · JPG · WEBP · MAX 10 MB</p>
       </label>
       {error ? <p className="mt-3 text-center text-sm text-copper">{error}</p> : null}
     </div>

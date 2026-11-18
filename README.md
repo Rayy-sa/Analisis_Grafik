@@ -1,4 +1,4 @@
-# 📊 Analisis Grafik Finansial — RAG Pipeline
+# 📊 Analisis Grafik Finansial RAG Pipeline
 
 > Sistem cerdas berbasis **Retrieval-Augmented Generation (RAG)** yang mampu mengekstrak data dari gambar grafik finansial, menyimpannya ke vector database, dan menjawab pertanyaan analitis menggunakan LLM lokal.
 
@@ -11,7 +11,7 @@
 
 ## 📖 Deskripsi Project
 
-Dalam dunia finansial, banyak data penting yang tersaji dalam bentuk **gambar grafik** — seperti laporan tahunan, presentasi investor, atau dokumen PDF. Mengekstrak data dari gambar-gambar ini secara manual sangat memakan waktu dan rentan kesalahan.
+Dalam dunia finansial, banyak data penting yang tersaji dalam bentuk **gambar grafik** seperti laporan tahunan, presentasi investor, atau dokumen PDF. Mengekstrak data dari gambar-gambar ini secara manual sangat memakan waktu dan rentan kesalahan.
 
 Project ini menyediakan **pipeline end-to-end** yang secara otomatis:
 
@@ -28,12 +28,27 @@ Project ini menyediakan **pipeline end-to-end** yang secara otomatis:
 | Fitur | Deskripsi |
 |---|---|
 | 🔍 **Ekstraksi Grafik Otomatis** | Mengubah gambar grafik/chart menjadi tabel data terstruktur menggunakan Google DePlot |
-| 🖼️ **Pra-Pemrosesan Cerdas** | Pembersihan gambar otomatis dengan OpenCV — mendeteksi semua warna garis chart secara universal |
+| 🖼️ **Pra-Pemrosesan Cerdas** | Pembersihan gambar otomatis dengan OpenCV mendeteksi semua warna garis chart secara universal |
 | 🧠 **Hybrid Search (RAG)** | Kombinasi Dense Vector Search + BM25 Sparse Search + Reciprocal Rank Fusion untuk pencarian konteks yang akurat |
-| 💬 **Tanya-Jawab Berbasis Data** | LLM lokal (Gemma 4 12B) menjawab pertanyaan HANYA berdasarkan data yang diekstrak — meminimalisir halusinasi |
+| 💬 **Tanya-Jawab Berbasis Data** | LLM lokal (Gemma 4 12B) menjawab pertanyaan HANYA berdasarkan data yang diekstrak meminimalisir halusinasi |
 | 📈 **Analisis Pola & Tren** | Deskripsi naratif otomatis tentang tren, puncak, dan insight dari grafik |
 | ✅ **Evaluasi Ganda** | MAPE untuk akurasi OCR + RAGAS Framework untuk kualitas RAG (Faithfulness, Relevancy, Precision, Recall) |
-| 🔒 **100% Lokal & Privat** | Semua pemrosesan LLM berjalan di mesin lokal via Ollama — data finansial tidak pernah keluar |
+| 🖥️ **Studio (UI)** | Satu ruang kerja di browser: unggah grafik, lihat progres, baca tabel & insight, lalu tanya jawab |
+| 🔒 **100% Lokal & Privat** | Semua pemrosesan LLM berjalan di mesin lokal via Ollama data finansial tidak pernah keluar |
+
+### Studio antarmuka web
+
+Studio (`frontend/`) adalah aplikasi React yang memanggil API FastAPI. Alurnya tiga layar:
+
+| Layar | Yang terlihat |
+|---|---|
+| **Atelier** | Unggah atau seret gambar PNG, JPG, atau WEBP (maks. 10 MB) |
+| **Sedang bekerja** | Stepper: Bersihkan → Ekstrak → Insight → Siapkan tanya jawab, plus pratinjau berkas |
+| **Workspace** | Grafik asli dan hasil pembersihan OpenCV, grafik garis yang digambar ulang dari tabel, tabel ekstraksi, kartu insight, dan panel tanya jawab |
+
+Panel tanya jawab menampilkan saran pertanyaan, jawaban yang mengalir token demi token, dan potongan sumber dari hybrid search. Jika Ollama atau PostgreSQL tidak hidup, banner status di pojok kanan menjelaskan layanan mana yang belum terhubung. Analisis tabel tetap bisa selesai tanpa database; indexing yang gagal hanya menandai basis vektor belum siap.
+
+Progres dikirim lewat Server-Sent Events (`/api/jobs/{id}/events`) dan dipolling cadangan tiap 2 detik. Pertanyaan dikirim ke `/api/ask` dan jawaban juga dialirkan lewat SSE.
 
 ---
 
@@ -125,6 +140,9 @@ Gambar Grafik (.jpg/.png)
 | **Evaluation** | [RAGAS](https://docs.ragas.io/) | Evaluasi kualitas pipeline RAG |
 | **Data Science** | Pandas, NumPy, Matplotlib, scikit-learn | Manipulasi data, perhitungan metrik, visualisasi |
 | **Notebook** | Jupyter Notebook | Eksplorasi dan eksperimen data interaktif |
+| **API** | [FastAPI](https://fastapi.tiangolo.com/) + Uvicorn | Job analisis, kesehatan layanan, dan streaming jawaban |
+| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, Framer Motion | Studio: unggah, stepper, workspace |
+| **Chart UI** | [Recharts](https://recharts.org/) | Menggambar ulang deret numerik dari tabel ekstraksi |
 | **Dataset** | [Kaggle](https://www.kaggle.com/datasets/varadsrivastava/financial-chart-ocr) | Sumber dataset grafik finansial |
 
 ---
@@ -139,51 +157,64 @@ analisis-grafik/
 ├── 📄 requirements.txt           # Daftar semua dependensi Python
 ├── 📄 README.md                  # Dokumentasi project (file ini)
 │
-├── 📂 data/                      # Data gambar grafik
-│   ├── gambar_uji.jpg            # Gambar uji coba 1
-│   ├── gambar_uji2.jpg           # Gambar uji coba 2
-│   ├── gambar_uji2.png           # Gambar uji coba 3
-│   └── 📂 raw/                   # Dataset mentah dari Kaggle
-│       ├── 📂 natural_data/      # Data grafik natural (annotations, images)
-│       │   ├── 📂 annotations/   # Anotasi ground truth
-│       │   ├── 📂 images/        # Gambar grafik asli
-│       │   └── index.json        # Indeks metadata dataset
-│       └── 📂 synthetic_data/    # Data grafik sintetis
-│           ├── 📂 charts/        # Gambar chart sintetis
-│           └── 📂 markdown/      # Data tabel dalam format markdown
+├── 📂 data/                      # Diabaikan Git: unggahan, dataset, gambar uji
+│   ├── 📂 uploads/               # Gambar asli + hasil pembersihan per job Studio
+│   └── 📂 raw/                   # Dataset mentah dari Kaggle (opsional)
+│
+├── 📂 frontend/                  # Studio UI React
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.ts            # Dev server :5173, proxy /api → :8000
+│   ├── tailwind.config.js
+│   ├── 📂 public/
+│   │   └── sample-chart.png
+│   └── 📂 src/
+│       ├── main.tsx
+│       ├── App.tsx               # Atelier → proses → workspace
+│       ├── index.css
+│       ├── 📂 components/
+│       │   ├── Dropzone.tsx      # Unggah / seret gambar
+│       │   ├── Stepper.tsx       # Progres pembersihan sampai indexing
+│       │   ├── StatusBanner.tsx  # Peringatan Ollama / PostgreSQL
+│       │   ├── Workspace.tsx     # Hasil: gambar, chart, tabel, insight, chat
+│       │   ├── ReconstructedChart.tsx
+│       │   ├── DataTable.tsx
+│       │   ├── InsightCard.tsx
+│       │   └── ChatPanel.tsx     # Tanya jawab streaming + sumber
+│       └── 📂 lib/
+│           ├── api.ts            # Klien HTTP dan SSE
+│           └── types.ts
 │
 ├── 📂 notebooks/                 # Jupyter Notebooks untuk eksperimen
-│   ├── data_exploration.ipynb    # Eksplorasi dan analisis dataset
-│   ├── data_validation.ipynb     # Validasi kualitas data
-│   └── vision_extraction_test.ipynb  # Pengujian ekstraksi vision DePlot
+│   ├── data_exploration.ipynb
+│   ├── data_validation.ipynb
+│   └── vision_extraction_test.ipynb
 │
-└── 📂 src/                       # Source code utama (modular pipeline)
-    ├── __init__.py
+└── 📂 src/                       # Pipeline Python + API
+    ├── 📂 api/                   # Module Studio API
+    │   ├── main.py               # FastAPI: health, jobs, ask
+    │   ├── jobs.py               # Antrian job dan orkestrasi pipeline
+    │   └── schemas.py
     │
-    ├── 📂 ingestion/             # Module 1: Data Ingestion
-    │   ├── downloader.py         #   → Download dataset dari Kaggle API
-    │   └── validator.py          #   → Parsing & validasi tabel finansial
+    ├── 📂 ingestion/
+    │   ├── downloader.py         # Download dataset dari Kaggle API
+    │   └── validator.py          # Parsing & validasi tabel finansial
     │
-    ├── 📂 extraction/            # Module 2: Chart Data Extraction
-    │   ├── __init__.py
-    │   ├── cv_preprocessor.py    #   → Pra-pemrosesan gambar (OpenCV)
-    │   └── deplot_extractor.py   #   → Ekstraksi data tabel (Google DePlot)
+    ├── 📂 extraction/
+    │   └── extractor.py          # OpenCV + DePlot dalam satu modul
     │
-    ├── 📂 retrieval/             # Module 3: Vector Search & Indexing
-    │   ├── __init__.py
-    │   ├── indexer.py            #   → Chunking, embedding, & insert ke pgvector
-    │   └── search.py             #   → Hybrid search (Dense + BM25 + RRF)
+    ├── 📂 retrieval/
+    │   ├── indexer.py            # Chunking, embedding, insert ke pgvector
+    │   └── search.py             # Hybrid search (Dense + BM25 + RRF)
     │
-    ├── 📂 generation/            # Module 4: LLM-based Analysis & QA
-    │   ├── __init__.py
-    │   ├── llm_client.py         #   → RAG pipeline end-to-end
-    │   ├── prompts.py            #   → Template prompt untuk analisis grafik
-    │   └── analyze_vision.py     #   → Pipeline DePlot → LLM (deskripsi naratif)
+    ├── 📂 generation/
+    │   ├── llm_client.py         # Prompt ketat, jawaban, dan streaming
+    │   ├── prompts.py            # Template analisis grafik
+    │   └── analyze_vision.py     # Panggilan Gemma untuk insight naratif
     │
-    └── 📂 evaluation/            # Module 5: Quality Evaluation
-        ├── __init__.py
-        ├── evaluate_extraction.py #  → Evaluasi akurasi OCR dengan MAPE
-        └── ragas_eval.py          #  → Evaluasi kualitas RAG dengan RAGAS
+    └── 📂 evaluation/
+        ├── evaluate_extraction.py
+        └── ragas_eval.py
 ```
 
 ---
@@ -200,6 +231,7 @@ Pastikan software berikut sudah terinstall di sistem Anda:
 | **Ollama** | Latest | Runtime LLM lokal |
 | **Git** | 2.0+ | Version control |
 | **Kaggle CLI** | Latest | Untuk download dataset (opsional) |
+| **Node.js** | 18+ | Runtime frontend Studio (npm 9+) |
 
 ### Kebutuhan Hardware
 
@@ -300,7 +332,7 @@ ollama serve
 
 ### 7. Studio Frontend (UI)
 
-Studio adalah satu ruang kerja: unggah grafik, lihat ekstraksi, baca insight, lalu tanya jawab.
+Studio adalah cara utama memakai pipeline: unggah grafik, ikuti progres, lalu baca hasil di workspace.
 
 **Backend API** (dari root project, virtualenv aktif):
 
@@ -308,6 +340,8 @@ Studio adalah satu ruang kerja: unggah grafik, lihat ekstraksi, baca insight, la
 pip install -r requirements.txt
 python -m uvicorn src.api.main:app --reload --port 8000
 ```
+
+Dokumentasi interaktif API: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
 **Frontend** (terminal kedua):
 
@@ -317,7 +351,30 @@ npm install
 npm run dev
 ```
 
-Buka [http://localhost:5173](http://localhost:5173). Vite mem-proxy `/api` ke port 8000. Pastikan Ollama berjalan untuk insight dan tanya jawab; PostgreSQL + pgvector diperlukan agar indexing RAG berhasil. Jika database mati, analisis tabel/insight tetap bisa jalan — panel tanya jawab akan menandai basis vektor belum terhubung.
+Buka [http://localhost:5173](http://localhost:5173). Jika port itu sudah terpakai, Vite memilih port berikutnya (misalnya 5174) dan mencetaknya di terminal. Vite mem-proxy `/api` ke `http://127.0.0.1:8000`.
+
+Ollama (`gemma4:12b`) menyusun insight dan jawaban. PostgreSQL + pgvector menyimpan potongan tabel agar tanya jawab bisa mencari konteks. Jika database mati, tabel dan insight tetap muncul; panel tanya jawab menandai basis vektor belum terhubung.
+
+**Endpoint yang dipakai Studio**
+
+| Method | Path | Fungsi |
+|---|---|---|
+| `GET` | `/api/health` | Status Ollama, PostgreSQL, dan nama model |
+| `POST` | `/api/jobs` | Unggah gambar, mulai pipeline di thread latar |
+| `GET` | `/api/jobs/{id}` | Snapshot status, pesan, dan jejak langkah |
+| `GET` | `/api/jobs/{id}/events` | SSE progres sampai `ready` atau `failed` |
+| `GET` | `/api/jobs/{id}/result` | Tabel, insight, dan status indexing |
+| `GET` | `/api/jobs/{id}/image/{kind}` | Gambar `original` atau `cleaned` |
+| `POST` | `/api/ask` | SSE jawaban RAG (delta token + sumber) |
+
+**Langkah di dalam satu job**
+
+1. **Bersihkan** OpenCV mengisolasi warna garis dan teks, menyimpan kanvas bersih.
+2. **Ekstrak** DePlot mengubah gambar bersih menjadi tabel pandas.
+3. **Insight** prompt analisis dikirim ke Gemma lewat Ollama.
+4. **Siapkan tanya jawab** baris tabel di-chunk, di-embed (BGE-M3), lalu disimpan ke `financial_docs`.
+
+Berkas unggahan tersimpan di `data/uploads/` (`{id}_original.*` dan `{id}_cleaned.png`). Folder `data/` tidak masuk Git.
 
 ### 8. Download Dataset (Opsional)
 
@@ -333,35 +390,26 @@ python src/ingestion/downloader.py
 
 ### Pipeline Lengkap (Step by Step)
 
-#### Tahap 1 — Pra-Pemrosesan Gambar (OpenCV)
+#### Tahap 1 & 2 Bersihkan lalu ekstrak (OpenCV + DePlot)
 
-Bersihkan gambar grafik dari noise, grid, dan background untuk meningkatkan akurasi DePlot:
-
-```bash
-python src/extraction/cv_preprocessor.py
-```
-
-Hasil: gambar bersih disimpan di `data/processed_all_colors.jpg`
-
-#### Tahap 2 — Ekstraksi Data dari Grafik (DePlot)
-
-Ubah gambar grafik menjadi tabel data terstruktur:
+Pra-pemrosesan dan pembacaan tabel ada di satu modul:
 
 ```bash
-python src/extraction/deplot_extractor.py
+python src/extraction/extractor.py
 ```
 
-Output contoh:
+Skrip ini memanggil `process_chart_pipeline` pada berkas contoh di `data/`. Log yang dicetak:
+
 ```
-[1/3] Membaca gambar dari: data/gambar_uji2.png
-[2/3] Hasil ekstraksi mentah (raw teks) dari DePlot
-[3/3] Berhasil distrukturkan ke bentuk Tabel Pandas:
-   Tahun  Pendapatan (Juta $)  Laba Bersih (%)
-   2021          150.5              12.5
-   2022          200.0              14.0
+[1/3] OpenCV sedang membersihkan gambar: ...
+[2/3] DePlot mengekstrak tabel dari gambar bersih...
+[3/3] Sukses! Data berhasil diekstrak:
+=== HASIL AKHIR PIPELINE ===
 ```
 
-#### Tahap 3 — Indexing ke Vector Database
+Di Studio, langkah yang sama dijalankan per unggahan di `src/api/jobs.py`, lalu hasilnya ditampilkan sebagai tabel dan grafik garis.
+
+#### Tahap 3 Indexing ke Vector Database
 
 Simpan data yang sudah diekstrak ke PostgreSQL/pgvector:
 
@@ -374,7 +422,7 @@ Proses yang terjadi:
 2. Embedding dengan model BGE-M3
 3. Bulk insert ke tabel `financial_docs`
 
-#### Tahap 4 — Tanya-Jawab RAG (Hybrid Search + LLM)
+#### Tahap 4 Tanya-Jawab RAG (Hybrid Search + LLM)
 
 Ajukan pertanyaan dan dapatkan jawaban berbasis data:
 
@@ -395,7 +443,7 @@ laba bersih pada tahun 2023 adalah 18.2%.
 ===================
 ```
 
-#### Tahap 5 — Analisis Pola Grafik (Vision → Narasi)
+#### Tahap 5 Analisis Pola Grafik (Vision → Narasi)
 
 Dapatkan deskripsi naratif tentang tren dan pola dari grafik:
 
@@ -501,18 +549,18 @@ data/raw/
 
 ### Cara Download
 
-**Opsi 1 — Via script otomatis:**
+**Opsi 1 Via script otomatis:**
 ```bash
 # Pastikan KAGGLE_USERNAME dan KAGGLE_KEY sudah diisi di .env
 python src/ingestion/downloader.py
 ```
 
-**Opsi 2 — Via Kaggle CLI:**
+**Opsi 2 Via Kaggle CLI:**
 ```bash
 kaggle datasets download -d varadsrivastava/financial-chart-ocr -p data/raw --unzip
 ```
 
-**Opsi 3 — Manual:**
+**Opsi 3 Manual:**
 Download langsung dari [halaman Kaggle](https://www.kaggle.com/datasets/varadsrivastava/financial-chart-ocr), lalu ekstrak ke folder `data/raw/`.
 
 ---
@@ -533,7 +581,7 @@ KAGGLE_KEY=your_kaggle_api_key
 # PostgreSQL + pgvector Configuration
 # ============================================
 DB_HOST=localhost
-DB_PORT=5433
+DB_PORT=5432
 DB_NAME=financial_rag
 DB_USER=postgres
 DB_PASS=postgres
@@ -553,11 +601,11 @@ Project ini dibuat untuk tujuan edukasi dan riset.
 
 | Referensi | Link |
 |---|---|
-| **Google DePlot** | [HuggingFace — google/deplot](https://huggingface.co/google/deplot) |
-| **BGE-M3 Embedding** | [HuggingFace — BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) |
-| **Gemma 4** | [Google AI — Gemma](https://ai.google.dev/gemma) |
+| **Google DePlot** | [HuggingFace google/deplot](https://huggingface.co/google/deplot) |
+| **BGE-M3 Embedding** | [HuggingFace BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) |
+| **Gemma 4** | [Google AI Gemma](https://ai.google.dev/gemma) |
 | **Ollama** | [ollama.ai](https://ollama.ai/) |
-| **pgvector** | [GitHub — pgvector](https://github.com/pgvector/pgvector) |
+| **pgvector** | [GitHub pgvector](https://github.com/pgvector/pgvector) |
 | **RAGAS** | [docs.ragas.io](https://docs.ragas.io/) |
 | **LangChain** | [langchain.com](https://www.langchain.com/) |
 
@@ -565,10 +613,10 @@ Project ini dibuat untuk tujuan edukasi dan riset.
 
 | Dataset | Link |
 |---|---|
-| **Financial Chart OCR** | [Kaggle — varadsrivastava/financial-chart-ocr](https://www.kaggle.com/datasets/varadsrivastava/financial-chart-ocr) |
+| **Financial Chart OCR** | [Kaggle varadsrivastava/financial-chart-ocr](https://www.kaggle.com/datasets/varadsrivastava/financial-chart-ocr) |
 
 ### Paper
 
-- Liu, F., et al. (2023). *DePlot: One-shot visual language reasoning by plot-to-table translation.* — [arXiv](https://arxiv.org/abs/2212.10505)
-- Chen, J., et al. (2024). *BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation.* — [arXiv](https://arxiv.org/abs/2402.03216)
-- Es, S., et al. (2023). *RAGAS: Automated Evaluation of Retrieval Augmented Generation.* — [arXiv](https://arxiv.org/abs/2309.15217)
+- Liu, F., et al. (2023). *DePlot: One-shot visual language reasoning by plot-to-table translation.* [arXiv](https://arxiv.org/abs/2212.10505)
+- Chen, J., et al. (2024). *BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation.* [arXiv](https://arxiv.org/abs/2402.03216)
+- Es, S., et al. (2023). *RAGAS: Automated Evaluation of Retrieval Augmented Generation.* [arXiv](https://arxiv.org/abs/2309.15217)
